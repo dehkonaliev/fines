@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fine Saver - Premium Dashboard</title>
+    <!-- Tailwind CSS for elegant layout utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Exact color matches from the image and custom branding */
+        .bg-pink-header {
+            background-color: #FCD6D6; /* Soft coral/pink header */
+        }
+        .bg-completed-btn {
+            background-color: #EED6D6; /* Completed button background */
+            border: 1px solid #C49F9F;
+        }
+        .btn-save {
+            border: 2px solid #0E1B1D;
+            color: #0E1B1D;
+        }
+        /* Visual feedback when row is unchecked */
+        .row-disabled {
+            opacity: 0.4;
+            background-color: #f8fafc;
+        }
+        /* Custom Checkbox Toggle Behavior */
+        .custom-checkbox {
+            border-color: #cbd5e1; /* Default slate-300 border when unchecked */
+            transition: all 0.2s ease;
+        }
+        /* When hidden input is checked, apply the emerald look to our custom square */
+        .row-checkbox:checked + .custom-checkbox {
+            border-color: #059669; /* border-emerald-600 */
+        }
+        /* Show the SVG checkmark icon only when input is checked */
+        .row-checkbox:checked + .custom-checkbox svg {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-[#FAF7F7] min-h-screen flex items-center justify-center p-4 md:p-8 font-sans">
+
+    <!-- Main Card Container -->
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-xl shadow-rose-100/40 p-6 md:p-10 border border-rose-100/50">
+        
+        <!-- Premium Header Area -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-widest text-rose-500 bg-rose-50 px-3 py-1 rounded-full">Attendance & Fine Manager</span>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mt-2">Fine Saver Dashboard</h1>
+                <p class="text-slate-500 text-sm mt-1">Track classroom absences, late arrivals, and calculate corresponding penalty days.</p>
+            </div>
+            <!-- Dynamic Status Badge -->
+            <div class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-2 rounded-2xl flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-sm font-semibold">Active Monitoring Enabled</span>
+            </div>
+        </div>
+
+        <!-- Professional Stats Metrics Section -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+            <!-- Metric 1: Total Students -->
+            <div class="bg-slate-50 border border-slate-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-slate-100">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Students</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="total-students-val" class="text-3xl font-black text-slate-800">0</span>
+                    <span class="text-sm text-slate-400 font-medium">registered</span>
+                </div>
+            </div>
+
+            <!-- Metric 2: Total Active Fine Days -->
+            <div class="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-rose-100/30">
+                <p class="text-xs font-bold text-rose-500 uppercase tracking-widest">Active Penalty Days</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="total-days-val" class="text-3xl font-black text-rose-700">0</span>
+                    <span class="text-sm text-rose-400 font-medium">days accum.</span>
+                </div>
+            </div>
+
+            <!-- Metric 3: Active Violations -->
+            <div class="bg-emerald-50/30 border border-emerald-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-emerald-100/20">
+                <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Active Violations</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="active-violations-val" class="text-3xl font-black text-emerald-700">0</span>
+                    <span class="text-sm text-slate-400 font-medium">selected</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Django Integration Form -->
+        <form method="POST" action="completed">
+            {% csrf_token %}
+            
+            <!-- Table Container with elegant custom border matching original layout -->
+            <div class="border-2 border-[#FCD6D6] rounded-2xl overflow-hidden shadow-md bg-white">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-pink-header border-b border-[#FCD6D6] text-slate-800 text-lg">
+                            <!-- Column 1: Custom green check box indicator -->
+                            <th class="py-5 px-6 w-24 text-center">
+                                <span class="text-xs font-extrabold uppercase tracking-widest text-[#9c6a6a]">Select</span>
+                            </th>
+                            <th class="py-5 px-6 text-center font-bold text-slate-800 text-lg tracking-wider">Student Name</th>
+                            <th class="py-5 px-6 text-center w-64 font-bold text-slate-800 text-lg tracking-wider">Accumulated Days</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y-2 divide-[#FCD6D6]">
+                        
+                        {% for fine in fines %}
+                        <tr class="table-row transition-all duration-150">
+                            <!-- Custom Styled Green Checkbox -->
+                            <td class="py-6 px-6 text-center align-middle">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <!-- Checked is removed by default, ready for user/Django state binding -->
+                                    <input type="checkbox" name="student" value="{{fine.id}}" class="sr-only row-checkbox">
+                                    
+                                    <!-- Green square box with custom class transitions -->
+                                    <div class="custom-checkbox w-9 h-9 rounded-xl border-2 flex items-center justify-center bg-transparent shadow-sm hover:scale-105 active:scale-95">
+                                        <svg class="w-6 h-6 stroke-emerald-600 stroke-[3.5px] fill-none opacity-0 transition-opacity duration-150" viewBox="0 0 24 24">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </div>
+                                </label>
+                            </td>
+                            <!-- Name -->
+                            <td class="py-6 px-6 text-center align-middle text-2xl font-bold text-slate-800 tracking-wide">
+                                {{fine.name}}
+                            </td>
+                            <!-- Days Counter -->
+                            <td class="py-6 px-6 text-center align-middle">
+                                <div class="flex items-center justify-center gap-6 text-2xl text-slate-800 select-none">
+                                    <p>{{fine.days}}</p>
+                                    
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 px-2">
+                
+                <!-- Completed Action Button (Submits with value or acts as anchor) -->
+                <button type="submit" name="action" value="completed" class="w-full sm:w-auto bg-completed-btn text-slate-900 font-extrabold px-12 py-4 mb-8 rounded-full hover:shadow-lg hover:shadow-rose-100 transition-all active:scale-95 flex items-center justify-center gap-4 text-2xl shadow-sm tracking-wide">
+                    <span>Completed</span>
+                    <!-- Beautiful arrow symbol inside a circle -->
+                    <span class="w-8 h-8 rounded-full border border-rose-400 flex items-center justify-center bg-white/70">
+                        <svg class="w-4 h-4 text-slate-800" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </form>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Table Container with elegant custom border matching original layout -->
+            <div class="border-2 border-[#FCD6D6] rounded-2xl overflow-hidden shadow-md bg-white">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-pink-header border-b border-[#FCD6D6] text-slate-800 text-lg">
+                            <!-- Column 1: Custom green check box indicator -->
+                            <th class="py-5 px-6 text-center font-bold text-slate-800 text-lg tracking-wider">Student Name</th>
+                            <th class="py-5 px-6 text-center w-64 font-bold text-slate-800 text-lg tracking-wider">Accumulated Days</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y-2 divide-[#FCD6D6]">
+                        
+                        {% for fine in fines %}
+                        <tr class="table-row transition-all duration-150">
+        
+                            <!-- Name -->
+                            <td class="py-6 px-6 text-center align-middle text-2xl font-bold text-slate-800 tracking-wide">
+                                {{fine.name}}
+                            </td>
+                            <!-- Days Counter -->
+                            <td class="py-6 px-6 text-center align-middle">
+                                <div class="flex items-center justify-center gap-6 text-2xl text-slate-800 select-none">
+                                    <!-- Decrement Button -->
+                                    <button type="button" class="btn-decrement w-10 h-10 rounded-full hover:bg-rose-50 hover:scale-110 active:scale-90 transition-all text-slate-500 hover:text-rose-600 font-light flex items-center justify-center">-</button>
+                                    
+                                    <!-- Numeric Days Output -->
+                                    <span class="counter-display font-semibold min-w-[28px]">{{fine.days}}</span>
+                                    
+                                    <!-- Hidden input to submit the counter value to Django -->
+                                    <input type="hidden" name="days" value="{{fine.id}}__{{fine.days}}" class="counter-input">
+                                    
+                                    <!-- Increment Button -->
+                                    <button type="button" class="btn-increment w-10 h-10 rounded-full hover:bg-emerald-50 hover:scale-110 active:scale-90 transition-all text-slate-500 hover:text-emerald-600 font-light flex items-center justify-center">+</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 px-2">
+                
+
+                <!-- Save Action Button -->
+                <button type="submit" name="action" value="save" class="w-full sm:w-auto btn-save bg-white text-slate-900 font-extrabold px-16 py-4 rounded-full hover:bg-slate-50 hover:shadow-md transition-all active:scale-95 text-2xl tracking-wide shadow-sm flex items-center justify-center">
+                    Save
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- JavaScript to keep Counters, Row Toggles, & Dashboard Metric Updates fully functional -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    
+    // Helper function to calculate and update dashboard statistics in real-time
+    const updateDashboardMetrics = () => {
+        const rows = document.querySelectorAll('.table-row');
+        let totalStudents = rows.length;
+        let activeDaysCount = 0;
+        let activeViolations = 0;
+
+        rows.forEach(row => {
+            const checkbox = row.querySelector('.row-checkbox');
+            const display = row.querySelector('.counter-display');
+            const daysVal = parseInt(display.textContent) || 0;
+
+            if (checkbox.checked) {
+                activeViolations += 1;
+                activeDaysCount += daysVal;
+            }
+        });
+
+        // Set content
+        document.getElementById('total-students-val').textContent = totalStudents;
+        document.getElementById('total-days-val').textContent = activeDaysCount;
+        document.getElementById('active-violations-val').textContent = activeViolations;
+    };
+
+    // Handle row check/uncheck styling feedback
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(checkbox => {
+        const row = checkbox.closest('.table-row');
+        const customBox = row.querySelector('.custom-checkbox');
+        const svg = customBox ? customBox.querySelector('svg') : null;
+        
+        // Initialize state (Unchecked rows should look dimmed on load)
+        if (!checkbox.checked) {
+            row.classList.add('row-disabled');
+        } else if (customBox && svg) {
+            // Ensure UI check state matches backend state if pre-checked
+            customBox.classList.add('bg-emerald-50', 'border-emerald-500');
+            svg.classList.remove('opacity-0');
+        }
+
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                row.classList.remove('row-disabled');
+                if (customBox && svg) {
+                    customBox.classList.add('bg-emerald-50', 'border-emerald-500');
+                    svg.classList.remove('opacity-0');
+                }
+            } else {
+                row.classList.add('row-disabled');
+                if (customBox && svg) {
+                    customBox.classList.remove('bg-emerald-50', 'border-emerald-500');
+                    svg.classList.add('opacity-0');
+                }
+            }
+            updateDashboardMetrics();
+        });
+    });
+
+    // Handle Counter Decrements
+    document.querySelectorAll('.btn-decrement').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = btn.parentElement;
+            const display = parent.querySelector('.counter-display');
+            const input = parent.querySelector('.counter-input');
+            let currentVal = parseInt(display.textContent) || 0;
+
+            if (currentVal > 0) {
+                currentVal -= 1;
+                display.textContent = currentVal;
+                input.value = currentVal; // Updates the dynamic hidden input smoothly
+                updateDashboardMetrics();
+            }
+        });
+    });
+
+    // Handle Counter Increments
+    document.querySelectorAll('.btn-increment').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const parent = btn.parentElement;
+            const display = parent.querySelector('.counter-display');
+            const input = parent.querySelector('.counter-input');
+            let currentVal = parseInt(display.textContent) || 0;
+
+            currentVal += 1;
+            display.textContent = currentVal;
+            input.value = currentVal; // Updates the dynamic hidden input smoothly
+            updateDashboardMetrics();
+        });
+    });
+
+    // Run initial setup to render starting calculations on load
+    updateDashboardMetrics();
+});
+    </script>
+</body>
+</html>
