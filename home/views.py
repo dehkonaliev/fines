@@ -6,11 +6,12 @@ from django.db.models import F
 class FineView(View):
     def get(self, request):
         fines = Fine.objects.all()
-        return render(request, 'index.html', {'fines':fines})
+        total = Fine.objects.count()
+        print(total)
+        return render(request, 'index.html', {'fines':fines, 'total':total})
     
     def post(self, request):
         days = request.POST.getlist('days')
-        print(days)
         fines = Fine.objects.all()
         for day in days:
             splitted = day.split('__')

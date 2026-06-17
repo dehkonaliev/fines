@@ -58,35 +58,6 @@
             </div>
         </div>
 
-        <!-- Professional Stats Metrics Section -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-            <!-- Metric 1: Total Students -->
-            <div class="bg-slate-50 border border-slate-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-slate-100">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Students</p>
-                <div class="flex items-baseline gap-2 mt-2">
-                    <span id="total-students-val" class="text-3xl font-black text-slate-800">0</span>
-                    <span class="text-sm text-slate-400 font-medium">registered</span>
-                </div>
-            </div>
-
-            <!-- Metric 2: Total Active Fine Days -->
-            <div class="bg-rose-50/50 border border-rose-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-rose-100/30">
-                <p class="text-xs font-bold text-rose-500 uppercase tracking-widest">Active Penalty Days</p>
-                <div class="flex items-baseline gap-2 mt-2">
-                    <span id="total-days-val" class="text-3xl font-black text-rose-700">0</span>
-                    <span class="text-sm text-rose-400 font-medium">days accum.</span>
-                </div>
-            </div>
-
-            <!-- Metric 3: Active Violations -->
-            <div class="bg-emerald-50/30 border border-emerald-100 p-5 rounded-2xl transition-all hover:shadow-md hover:shadow-emerald-100/20">
-                <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Active Violations</p>
-                <div class="flex items-baseline gap-2 mt-2">
-                    <span id="active-violations-val" class="text-3xl font-black text-emerald-700">0</span>
-                    <span class="text-sm text-slate-400 font-medium">selected</span>
-                </div>
-            </div>
-        </div>
         
         <!-- Django Integration Form -->
         <form method="POST" action="completed">
@@ -116,7 +87,7 @@
                                     <input type="checkbox" name="student" value="{{fine.id}}" class="sr-only row-checkbox">
                                     
                                     <!-- Green square box with custom class transitions -->
-                                    <div class="custom-checkbox w-9 h-9 rounded-xl border-2 flex items-center justify-center bg-transparent shadow-sm hover:scale-105 active:scale-95">
+                                    <div class="custom-checkbox w-9 h-9 rounded-xl border-2 flex items-center justify-center bg-transparent shadow-sm hover:scale-105">
                                         <svg class="w-6 h-6 stroke-emerald-600 stroke-[3.5px] fill-none opacity-0 transition-opacity duration-150" viewBox="0 0 24 24">
                                             <polyline points="20 6 9 17 4 12" />
                                         </svg>
@@ -124,7 +95,7 @@
                                 </label>
                             </td>
                             <!-- Name -->
-                            <td class="py-6 px-6 text-center align-middle text-2xl font-bold text-slate-800 tracking-wide">
+                            <td class="py-6 px-6 text-center align-middle text-2xl font-bold text-slate-900 tracking-wide">
                                 {{fine.name}}
                             </td>
                             <!-- Days Counter -->
@@ -233,30 +204,33 @@
             const display = row.querySelector('.counter-display');
             const daysVal = parseInt(display.textContent) || 0;
 
-            if (checkbox.checked) {
+            // CRITICAL: We now ALWAYS count the days, even if the checkbox isn't checked
+            activeDaysCount += daysVal;
+
+            if (checkbox && checkbox.checked) {
                 activeViolations += 1;
-                activeDaysCount += daysVal;
             }
         });
 
-        // Set content
-        document.getElementById('total-students-val').textContent = totalStudents;
-        document.getElementById('total-days-val').textContent = activeDaysCount;
-        document.getElementById('active-violations-val').textContent = activeViolations;
+        // Set UI text metrics safely
+        if (document.getElementById('total-students-val')) document.getElementById('total-students-val').textContent = totalStudents;
+        if (document.getElementById('total-days-val')) document.getElementById('total-days-val').textContent = activeDaysCount;
+        if (document.getElementById('active-violations-val')) document.getElementById('active-violations-val').textContent = activeViolations;
     };
 
     // Handle row check/uncheck styling feedback
     const checkboxes = document.querySelectorAll('.row-checkbox');
     checkboxes.forEach(checkbox => {
         const row = checkbox.closest('.table-row');
+        if (!row) return;
+        
         const customBox = row.querySelector('.custom-checkbox');
         const svg = customBox ? customBox.querySelector('svg') : null;
         
-        // Initialize state (Unchecked rows should look dimmed on load)
+        // Initialize style state on load (Buttons remain clickable via CSS pointer-events config)
         if (!checkbox.checked) {
             row.classList.add('row-disabled');
         } else if (customBox && svg) {
-            // Ensure UI check state matches backend state if pre-checked
             customBox.classList.add('bg-emerald-50', 'border-emerald-500');
             svg.classList.remove('opacity-0');
         }
@@ -279,7 +253,20 @@
         });
     });
 
-    // Handle Counter Decrements
+    // Helper to safely preserve Django ID prefix and update the input value
+    const updateHiddenInputWithValue = (inputElement, newValue) => {
+        if (!inputElement) return;
+        
+        const currentString = inputElement.value; // e.g., "14__5"
+        if (currentString.includes('__')) {
+            const fineId = currentString.split('__')[0]; // Extracts the "14"
+            inputElement.value = `${fineId}__${newValue}`; // Rebuilds string structure
+        } else {
+            inputElement.value = newValue; 
+        }
+    };
+
+    // Handle Counter Decrements (Always Active Now)
     document.querySelectorAll('.btn-decrement').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const parent = btn.parentElement;
@@ -290,13 +277,13 @@
             if (currentVal > 0) {
                 currentVal -= 1;
                 display.textContent = currentVal;
-                input.value = currentVal; // Updates the dynamic hidden input smoothly
+                updateHiddenInputWithValue(input, currentVal);
                 updateDashboardMetrics();
             }
         });
     });
 
-    // Handle Counter Increments
+    // Handle Counter Increments (Always Active Now)
     document.querySelectorAll('.btn-increment').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const parent = btn.parentElement;
@@ -306,7 +293,7 @@
 
             currentVal += 1;
             display.textContent = currentVal;
-            input.value = currentVal; // Updates the dynamic hidden input smoothly
+            updateHiddenInputWithValue(input, currentVal);
             updateDashboardMetrics();
         });
     });
